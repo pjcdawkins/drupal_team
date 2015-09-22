@@ -1,0 +1,46 @@
+<?php
+/**
+ * @file
+ * Install/uninstall functions for the Team module.
+ */
+
+/**
+ * Implements hook_schema().
+ */
+function team_schema() {
+  $schema = array();
+  $schema['team'] = array(
+    'fields' => array(
+      'team_id' => array(
+        'description' => 'Primary key: numeric team ID',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'uid' => array(
+        'description' => 'The {users}.uid of the account that owns the team.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'name' => array(
+        'description' => 'The machine name for the team.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ),
+      'label' => array(
+        'description' => 'The human-readable label of the team.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ),
+    ),
+    'primary key' => array('team_id'),
+    'unique keys' => array(
+      'name' => array('name'),
+    ),
+  );
+
+  return $schema;
+}

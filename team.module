@@ -1,0 +1,34 @@
+<?php
+/**
+ * @file
+ * The Team module.
+ */
+
+/**
+ * Implements hook_entity_info().
+ */
+function team_entity_info() {
+  $info = array();
+  $info['team'] = array(
+    'label' => t('Team'),
+    'controller class' => 'EntityApiController',
+    'entity class' => 'Team',
+    'base table' => 'team',
+    'fieldable' => TRUE,
+    'entity keys' => array(
+      'id' => 'team_id',
+      'label' => 'label',
+      'name' => 'name',
+    ),
+    'module' => 'team',
+    'access callback' => 'team_access',
+    'metadata controller class' => 'EntityDefaultMetadataController',
+    'views controller class' => 'EntityDefaultViewsController',
+    'admin ui' => array(
+      'path' => 'admin/people/teams',
+      'controller class' => 'EntityDefaultUIController',
+    ),
+  );
+
+  return $info;
+}

@@ -1,3 +1,9 @@
 name = Team
 description = Create teams of users.
 core = 7.x
+
+dependencies[] = entity
+dependencies[] = entityreference
+dependencies[] = inline_entity_form
+
+files[] = includes/Team.class.php

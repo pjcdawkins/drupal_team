@@ -5,6 +5,77 @@
  */
 
 /**
+ * Implements hook_menu().
+ */
+function team_menu() {
+  $items = array();
+  $items['team/new'] = array(
+    'title' => 'Create new team',
+    'access callback' => 'team_access',
+    'access arguments' => array('create'),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('team_form', NULL, 'create'),
+    'file' => 'includes/team.forms.inc',
+    'type' => MENU_NORMAL_ITEM,
+  );
+  $items['team/%entity_object'] = array(
+    'title callback' => 'entity_label',
+    'title arguments' => array('team', 1),
+    'load arguments' => array('team'),
+    'access callback' => 'entity_access',
+    'access arguments' => array('view', 'team', 1),
+    'page callback' => 'team_view',
+    'page arguments' => array(1),
+  );
+  $items['team/%entity_object/view'] = array(
+    'title' => 'View',
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'weight' => 0,
+  );
+  $items['team/%entity_object/edit'] = array(
+    'title' => 'Edit',
+    'load arguments' => array('team'),
+    'access callback' => 'entity_access',
+    'access arguments' => array('update', 'team', 1),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('team_form', 1),
+    'file' => 'includes/team.forms.inc',
+    'type' => MENU_LOCAL_TASK,
+    'weight' => 1,
+  );
+  $items['team/%entity_object/delete'] = array(
+    'title' => 'Delete',
+    'load arguments' => array('team'),
+    'access callback' => 'entity_access',
+    'access arguments' => array('delete', 'team', 1),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('team_delete_form', 1),
+    'file' => 'includes/team.forms.inc',
+    'type' => MENU_CALLBACK,
+    'weight' => 2,
+  );
+  $items['admin/config/people/teams'] = array(
+    'title' => 'Teams',
+    'description' => 'Administer teams',
+    'page callback' => 'system_admin_menu_block_page',
+    'access arguments' => array('team: administer'),
+    'file' => 'system.admin.inc',
+    'file path' => drupal_get_path('module', 'system'),
+  );
+
+  return $items;
+}
+
+/**
+ * View callback for a team.
+ */
+function team_view(Team $team, $view_mode = 'full') {
+  $entities = array($team->team_id => $team);
+
+  return entity_view('team', $entities, $view_mode);
+}
+
+/**
  * Implements hook_entity_info().
  */
 function team_entity_info() {
@@ -19,16 +90,101 @@ function team_entity_info() {
       'id' => 'team_id',
       'label' => 'label',
       'name' => 'name',
+      'bundle' => 'type',
     ),
+    'bundles' => team_bundles(),
     'module' => 'team',
     'access callback' => 'team_access',
     'metadata controller class' => 'EntityDefaultMetadataController',
     'views controller class' => 'EntityDefaultViewsController',
-    'admin ui' => array(
-      'path' => 'admin/people/teams',
-      'controller class' => 'EntityDefaultUIController',
-    ),
   );
 
   return $info;
+}
+
+/**
+ * Access callback for teams.
+ */
+function team_access($op, Team $entity = NULL, $account = NULL) {
+  if (user_access('team: administer')) {
+    return TRUE;
+  }
+
+  if ($op == 'create') {
+    return user_access('team: create', $account);
+  }
+  if (user_access('team: ' . $op . ' any', $account)) {
+    return TRUE;
+  }
+
+  $account = $account ?: $GLOBALS['user'];
+  $own = $entity && $entity->uid == $account->uid;
+
+  return $own && user_access('organization: ' . $op . ' own', $account);
+}
+
+/**
+ * Implements hook_permission().
+ */
+function team_permission() {
+  $permissions = array();
+
+  $permissions['team: administer'] = array(
+    'name' => t('Administer teams'),
+    'restrict access' => TRUE,
+  );
+
+
+  $permissions['team: create'] = array(
+    'title' => t('Create teams'),
+  );
+
+  $actions = array('view' => 'View', 'update' => 'Edit', 'delete' => 'Delete');
+  foreach (array('own', 'any') as $rel) {
+    foreach ($actions as $op => $action) {
+      $permissions["team: $op $rel"] = array(
+        'title' => t("$action $rel teams"),
+      );
+    }
+  }
+
+  return $permissions;
+}
+
+/**
+ * List team bundles.
+ *
+ * @return array
+ *   An array of bundles as expected by hook_entity_info().
+ */
+function team_bundles() {
+  $bundles = array(
+    'team' => array(
+      'label' => t('Team'),
+      'admin' => array(
+        'path' => 'admin/config/people/teams',
+        'access arguments' => array('team: administer'),
+      ),
+    ),
+  );
+  drupal_alter(__FUNCTION__, $bundles);
+
+  return $bundles;
+}
+
+/**
+ * Load a team by its machine name.
+ *
+ * @param string $name
+ *   The name of the team.
+ * @param bool $reset
+ *   Whether to bypass the static entity cache (default: FALSE).
+ *
+ * @return Team|FALSE
+ *   The team entity, or FALSE if not found.
+ */
+function team_load_by_name($name, $reset = FALSE) {
+  $teams = entity_load('team', FALSE, array('name' => $name), $reset);
+
+  return $teams ? reset($teams) : FALSE;
 }

@@ -23,6 +23,12 @@ function team_schema() {
         'unsigned' => TRUE,
         'not null' => TRUE,
       ),
+      'type' => array(
+        'description' => 'The type (bundle) of the team.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ),
       'name' => array(
         'description' => 'The machine name for the team.',
         'type' => 'varchar',
@@ -37,10 +43,39 @@ function team_schema() {
       ),
     ),
     'primary key' => array('team_id'),
+    'indexes' => array(
+      'type' => array('type'),
+    ),
     'unique keys' => array(
       'name' => array('name'),
     ),
   );
 
   return $schema;
+}
+
+/**
+ * Implements hook_install().
+ */
+function team_install() {
+  // Create default fields and instances.
+  field_info_cache_clear();
+  _team_ensure_fields();
+}
+
+/**
+ * Ensure installed fields and instances.
+ */
+function _team_ensure_fields() {
+  module_load_include('inc', 'team', 'includes/team.fields');
+  foreach (team_required_field_bases() as $field) {
+    if (!field_info_field($field['field_name'])) {
+      field_create_field($field);
+    }
+  }
+  foreach (team_required_field_instances() as $instance) {
+    if (!field_info_instance($instance['entity_type'], $instance['field_name'], $instance['bundle'])) {
+      field_create_instance($instance);
+    }
+  }
 }
